@@ -1,2 +1,19 @@
 # LUP-rank-computer
-An LUP based algorithm for Computing numerical rank of a matrix much faster than the SVD method.
+An LUP based algorithm for Computing numerical rank of a matrix in Python.
+
+### Why another rank computing algorithm?
+The most common way to compute the numerical rank of a matrix in Python is to use Numpy's [matrix_rank](https://docs.scipy.org/doc/numpy-1.14.0/reference/generated/numpy.linalg.matrix_rank.html) function which is based on the SVD method. However, even for matrices with moderately large dimensions the "matrix_rank" function takes noticeably long to execute. For example, it can take upto a few minutes for a matrix with dimension 10000 by 10000 in most modern desktop machines. My original goal was to devise a reasonably accurate method that works much faster specially for large matrices.
+
+### How fast is the LUP-rank-computer?
+I have benchmarked the algorithm on randomly generated (UAR) matrices of various dimensions and compared its execution time against matrix_rank's execution time. The results were averaged over 100 runs.
+
+| Matrix Size | Speedup |
+|-------------|---------|
+| 100x100     | 1.411x  |
+| 100x1000    | 3.109x  |
+| 100x10000   | 5.373x  |
+| 1000x1000   | 6.758x  |
+| 1000x10000  | 5.417x  |
+| 10000x10000 | 23.607x |
+
+Feel free to contact me if you have any questions or comments.
