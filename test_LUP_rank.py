@@ -1,9 +1,11 @@
 import numpy as np
 from numpy.linalg import matrix_rank
-from LUP_rank import rank_revealing_LUP
+import LUP_rank
 import statistics as stat
 from time import perf_counter
 
+
+RANK_COMPUTER = None
 
 def run_all_tests(params, threshold, diagnostics, runs):
     """
@@ -81,7 +83,7 @@ def tests_random_cond_rank(row, col, cond, rank=None, threshold=10**-10, diagnos
     svd_time = perf_counter() - t0
 
     t1 = perf_counter()
-    A_rank_lup, _ = rank_revealing_LUP(A, threshold)
+    A_rank_lup = RANK_COMPUTER(A, threshold)
     lup_time = perf_counter() - t1
 
     if A_rank_svd != A_rank_lup:
@@ -111,7 +113,7 @@ def tests_random_uniform(row, col, interval, threshold=10**-10, diagnostics=Fals
     svd_time = perf_counter() - t0
 
     t1 = perf_counter()
-    A_rank_lup, _ = rank_revealing_LUP(A, threshold)
+    A_rank_lup = RANK_COMPUTER(A, threshold)
     lup_time = perf_counter() - t1
 
     if A_rank_svd != A_rank_lup:
@@ -141,7 +143,7 @@ def tests_random_gaussian(row, col, mean=0, scale=1, threshold=10**-10, diagnost
     svd_time = perf_counter() - t0
 
     t1 = perf_counter()
-    A_rank_lup, _ = rank_revealing_LUP(A, threshold)
+    A_rank_lup = RANK_COMPUTER(A, threshold)
     lup_time = perf_counter() - t1
 
     if A_rank_svd != A_rank_lup:
@@ -171,7 +173,7 @@ def tests_random_binomial(row, col, n=1, p=0.1, threshold=10**-10, diagnostics=F
     svd_time = perf_counter() - t0
 
     t1 = perf_counter()
-    A_rank_lup, _ = rank_revealing_LUP(A, threshold)
+    A_rank_lup = RANK_COMPUTER(A, threshold)
     lup_time = perf_counter() - t1
 
     if A_rank_svd != A_rank_lup:
@@ -305,6 +307,11 @@ if __name__ == '__main__':
     threshold, diagnostics = 10**-10, True
     runs = 100
     cond = 10**5
+
+    RANK_COMPUTER = LUP_rank.rank_revealing_LUP
+    RANK_COMPUTER = LUP_rank.rank_revealing_LUP_GPU
+
+    print("Testing:", RANK_COMPUTER.__name__)
 
     params = {}
     params['test_uniform'] = [row, col, [-100, 100], tests_random_uniform]
