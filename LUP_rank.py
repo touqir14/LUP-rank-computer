@@ -265,6 +265,7 @@ def rank_revealing_LUP(A, threshold=10**-10):
     return rank
 
 
+
 def rank_revealing_LUP_GPU(A, threshold=10**-10):
     """
     It returns the rank of A using GPU acceleration. This is based on PyTorch's LUP implementation.
@@ -294,24 +295,11 @@ def rank_revealing_LUP_GPU(A, threshold=10**-10):
         print("rank_revealing_LUP_GPU requires PyTorch to run.")
 
     A = A / np.abs(A).max()
-    if A.shape[0] != A.shape[1]:
-        m, n = A.shape
-        A_tensor = np.zeros(shape=[m+n, m+n], dtype=np.float64)
-        A_tensor[:m, :n] = A
-        A_tensor[-n:, -m:] = A.T
-        A_tensor = torch.from_numpy(A_tensor).cuda()
-        rank_div_two = True
-    else:
-        A_tensor = torch.from_numpy(A).cuda()
-        rank_div_two = False
-
+    A_tensor = torch.from_numpy(A).cuda()    
     A_LU, pivots = torch.lu(A_tensor, get_infos=False)
     _, _, u = torch.lu_unpack(A_LU, pivots, unpack_pivots=False)
     u = u.cpu().numpy()
     ref = compute_ref_LUP_fast(u, threshold)
     rank = compute_rank_ref(ref, threshold)
-
-    if rank_div_two:
-        rank = int(rank / 2)
 
     return rank

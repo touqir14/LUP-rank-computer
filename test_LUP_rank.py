@@ -1,8 +1,10 @@
 import numpy as np
 from numpy.linalg import matrix_rank
 import LUP_rank
+import other_rank_computers
 import statistics as stat
 from time import perf_counter
+import argparse
 
 
 RANK_COMPUTER = None
@@ -303,22 +305,52 @@ def _build_matrix_rank_k_FAST(row, col, k, really_fast=False):
 
 
 if __name__ == '__main__':
-    row, col = 100, 100
+    row, col = 1000, 1000
     threshold, diagnostics = 10**-10, True
-    runs = 100
-    cond = 10**5
+    runs = 30
+    cond = 10**8
 
     RANK_COMPUTER = LUP_rank.rank_revealing_LUP
-    RANK_COMPUTER = LUP_rank.rank_revealing_LUP_GPU
+    # RANK_COMPUTER = LUP_rank.rank_revealing_LUP_GPU
+    # RANK_COMPUTER = other_rank_computers.rank_torch
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--shape", help="Matrix dimensions. Eg: '--shape 10,10' means row=10 and col=10")
+    parser.add_argument("--runs", help="Number of runs over which the results will be averaged")
+    parser.add_argument("--cond", help="Ratio of largest singular value to the smallest non-zero singular value for test_cond_rank. Eg: '1e3' is interpreted as '1000'")
+    parser.add_argument("--threshold", help="A threshold parameter. Eg: '1e3' is interpreted as '1000'. 10^-10 is used by default")
+    parser.add_argument("--diagnostics", help="0 for turning off diagnostics and 1 for turning on diagnostics. By default diagnostics is set to True")
+    parser.add_argument("--test_mode", help="0 for CPU, 1 for GPU, 2 for Torch's matrix_rank")
+    args = parser.parse_args()
+    
+    if args.shape is not None:
+        row, col = args.shape.split(',')
+        row, col = int(row), int(col)
+    if args.runs is not None:
+        runs = int(args.runs)
+    if args.cond is not None:
+        cond = float(args.cond)
+    if args.threshold is not None:
+        threshold = float(args.threshold)
+    if args.diagnostics is not None:
+        diagnostics = bool(int(args.diagnostics))
+    if args.test_mode is not None:
+        if args.test_mode == '0':
+            RANK_COMPUTER = LUP_rank.rank_revealing_LUP
+        elif args.test_mode == '1':
+            RANK_COMPUTER = LUP_rank.rank_revealing_LUP_GPU
+        elif args.test_mode == '2':
+            RANK_COMPUTER = other_rank_computers.rank_torch
 
     print("Testing:", RANK_COMPUTER.__name__)
+    print("row:",row,"col:",col,"runs:",runs,"cond:",cond,"threshold:",threshold,"diagnostics:",diagnostics)
 
     params = {}
     params['test_uniform'] = [row, col, [-100, 100], tests_random_uniform]
-    params['test_gaussian'] = [row, col, 0, 10, tests_random_gaussian]
-    params['test_binomial_01'] = [row, col, 1, 0.1, tests_random_binomial]
-    params['test_binomial_05'] = [row, col, 1, 0.5, tests_random_binomial]
-    params['test_binomial_09'] = [row, col, 1, 0.9, tests_random_binomial]
-    params['test_cond_rank'] = [row, col, cond, None, tests_random_cond_rank]
+    # params['test_gaussian'] = [row, col, 0, 10, tests_random_gaussian]
+    # params['test_binomial_01'] = [row, col, 1, 0.1, tests_random_binomial]
+    # params['test_binomial_05'] = [row, col, 1, 0.5, tests_random_binomial]
+    # params['test_binomial_09'] = [row, col, 1, 0.9, tests_random_binomial]
+    # params['test_cond_rank'] = [row, col, cond, None, tests_random_cond_rank]
 
     run_all_tests(params, threshold, diagnostics, runs)
