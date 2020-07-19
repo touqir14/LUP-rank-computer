@@ -154,6 +154,7 @@ def compute_ref_LUP_fast(u, threshold):
             if not_ref_pos[0] != -1:
                 start, end = not_ref_pos
                 _, u_prime = lu(u[order[start:end+1], j:], permute_l=True)
+                # u_prime = u_prime / np.abs(u_prime).max() #
                 sorted_scores_t = np.ones(end-start+1, dtype=np.uint64)*cols
                 order_t = np.arange(end-start+1, dtype=np.uint64)
                 u_sorted_t, sorted_scores_t[:u_prime.shape[0]], order_t[:u_prime.shape[0]] = sort_rows_fast(
@@ -259,6 +260,7 @@ def rank_revealing_LUP(A, threshold=10**-10):
 
     A = A / np.abs(A).max()
     _, u = lu(A, permute_l=True)
+    threshold = np.abs(u).max() * np.finfo(np.float64).eps * np.max(u.shape) * 300
     ref = compute_ref_LUP_fast(u, threshold)
     rank = compute_rank_ref(ref, threshold)
 

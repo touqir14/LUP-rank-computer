@@ -40,8 +40,12 @@ def run_all_tests(params, threshold, diagnostics, runs):
         args = list(zip(*[[*v[:-1], threshold, diagnostics]]*runs))
         result_values = list(map(fn, *args))
         params[k] += compute_mean_values(result_values)
-        params[k].append("For {0}: success_rate:{1}, lup_time_avg:{2}, svd_time_avg:{3}, speed_gain:{4}".format(
-            k, params[k][-3]*100, params[k][-2], params[k][-1], params[k][-1]/params[k][-2]))
+        if fn is tests_random_cond_rank:
+            params[k].append("For {0}: success_%_lup:{1}, success_%_svd:{2}, lup_time_avg:{3}, svd_time_avg:{4}, speed_gain:{5}".format(
+                k, params[k][-4]*100, params[k][-3]*100, params[k][-2], params[k][-1], params[k][-1]/params[k][-2]))            
+        else:
+            params[k].append("For {0}: success_%:{1}, lup_time_avg:{2}, svd_time_avg:{3}, speed_gain:{4}".format(
+                k, params[k][-3]*100, params[k][-2], params[k][-1], params[k][-1]/params[k][-2]))
 
     for k in params:
         print(params[k][-1])
@@ -63,7 +67,7 @@ def tests_random_cond_rank(row, col, cond, rank=None, threshold=10**-10, diagnos
     __________
 
     success: (Boolean)
-    If LUP rank and SVD rank matches then this will True, else False
+    If LUP rank and SVD rank matches then this will return True, else False
 
     lup_time: (Float)
     Time to Compute rank using the LUP method
@@ -76,27 +80,37 @@ def tests_random_cond_rank(row, col, cond, rank=None, threshold=10**-10, diagnos
     if rank is None:
         rank = np.random.randint(low=1, high=min(row, col)+1)
 
-    success = True
+    success_lup, success_svd = True, True
     A = _build_matrix_rank_k(row, col, rank, cond, symmetric=False)
     # A = _build_matrix_rank_k_FAST(row, col, rank, really_fast=True)
 
     t0 = perf_counter()
-    A_rank_svd = matrix_rank(A)
+    A_rank_svd = matrix_rank(A) #
+    # A_rank_svd = rank
     svd_time = perf_counter() - t0
 
     t1 = perf_counter()
     A_rank_lup = RANK_COMPUTER(A, threshold)
     lup_time = perf_counter() - t1
-
-    if A_rank_svd != A_rank_lup:
-        success = False
+#
+    if A_rank_svd != rank:
+        success_svd = False
         if diagnostics:
             print("*****")
-            print("Failed! From tests_random_cond_rank with row:{0},column:{1},threshold:{2},cond:{3},rank:{4}".format(
-                row, col, threshold, cond, rank))
-            print("LUP_rank:{0}, SVD_rank:{1}".format(A_rank_lup, A_rank_svd))
+            print("SVD_rank Failed! From tests_random_cond_rank with row:{0},column:{1},threshold:{2},cond:{3}".format(
+                row, col, threshold, cond))
+            print("numerical_rank:{0}, SVD_rank:{1}".format(rank, A_rank_svd))
 
-    return success, lup_time, svd_time
+    if A_rank_lup != rank:
+        success_lup = False
+        if diagnostics:
+            print("*****")
+            print("LUP_rank Failed! From tests_random_cond_rank with row:{0},column:{1},threshold:{2},cond:{3}".format(
+                row, col, threshold, cond))
+            print("numerical_rank:{0}, LUP_rank:{1}".format(rank, A_rank_lup))
+
+    return success_lup, success_svd, lup_time, svd_time
+
 
 
 def tests_random_uniform(row, col, interval, threshold=10**-10, diagnostics=False):
@@ -321,6 +335,7 @@ if __name__ == '__main__':
     parser.add_argument("--threshold", help="A threshold parameter. Eg: '1e3' is interpreted as '1000'. 10^-10 is used by default")
     parser.add_argument("--diagnostics", help="0 for turning off diagnostics and 1 for turning on diagnostics. By default diagnostics is set to True")
     parser.add_argument("--test_mode", help="0 for CPU, 1 for GPU, 2 for Torch's matrix_rank")
+    parser.add_argument("--seed", help="Enter an (int) seed value for numpy.random.seed")
     args = parser.parse_args()
     
     if args.shape is not None:
@@ -341,16 +356,18 @@ if __name__ == '__main__':
             RANK_COMPUTER = LUP_rank.rank_revealing_LUP_GPU
         elif args.test_mode == '2':
             RANK_COMPUTER = other_rank_computers.rank_torch
+    if args.seed is not None:
+        np.random.seed(int(args.seed))
 
     print("Testing:", RANK_COMPUTER.__name__)
     print("row:",row,"col:",col,"runs:",runs,"cond:",cond,"threshold:",threshold,"diagnostics:",diagnostics)
 
     params = {}
-    params['test_uniform'] = [row, col, [-100, 100], tests_random_uniform]
+    # params['test_uniform'] = [row, col, [-100, 100], tests_random_uniform]
     # params['test_gaussian'] = [row, col, 0, 10, tests_random_gaussian]
     # params['test_binomial_01'] = [row, col, 1, 0.1, tests_random_binomial]
     # params['test_binomial_05'] = [row, col, 1, 0.5, tests_random_binomial]
     # params['test_binomial_09'] = [row, col, 1, 0.9, tests_random_binomial]
-    # params['test_cond_rank'] = [row, col, cond, None, tests_random_cond_rank]
+    params['test_cond_rank'] = [row, col, cond, None, tests_random_cond_rank]
 
     run_all_tests(params, threshold, diagnostics, runs)
