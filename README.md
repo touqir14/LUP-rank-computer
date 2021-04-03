@@ -3,7 +3,7 @@ For embedding latex, read this https://gist.github.com/a-rodin/fef3f543412d6e1ec
 -->
 
 # LUP-rank-computer
-An LUP based algorithm for Computing numerical rank of a matrix in Python.
+An LUP factorization based algorithm for Computing the numerical rank of a matrix in Python.
 
 ### Why another rank computing algorithm?
 The most common way to compute the numerical rank of a matrix in Python is to use Numpy's [matrix_rank](https://numpy.org/doc/stable/reference/generated/numpy.linalg.matrix_rank.html) function which is based on the SVD method. However, even for matrices with moderately large dimensions the "matrix_rank" function takes noticeably long to execute. For example, it can take upto a few minutes for a matrix with dimension 10000 by 10000 in most modern desktop machines. My original goal was to devise a reasonably accurate method that works much faster specially for large matrices.
