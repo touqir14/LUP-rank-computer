@@ -3,6 +3,9 @@ import numpy as np
 import cython
 from libc.stdint cimport uint64_t, int64_t
 
+cdef extern from "complex.h":
+    double cabs(double complex x) nogil
+
 np.import_array()
 
 @cython.boundscheck(False)
@@ -61,6 +64,57 @@ cpdef (uint64_t, uint64_t) sort_rows_loop(uint64_t[:] scores, double[:,:] u, dou
     for i in range(min_shape):
         j = i
         while (-threshold <= u[i, j] <= threshold):
+            if j == cols - 1:
+                j += 1
+                num_zero_rows += 1
+                break
+            j += 1
+
+        j += adder
+        if min_j > j:
+            min_j = j
+        scores[i] = j
+
+    min_piv_idx = min_j 
+    return num_zero_rows, min_piv_idx
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(True) 
+cpdef (uint64_t, uint64_t) sort_rows_loop_complex(uint64_t[:] scores, double complex[:,:] u, double threshold, int64_t adder):
+    
+    """
+    Sorts rows of input numpy array u such that for any two rows i,j of the sorted array, if i>j
+    then the pivot column index of row i will not be smaller than that of row j.
+
+    Computes the column pivot index of each row within the upper triangular matrix u.
+
+    Parameters
+    __________
+
+    u: (2D complex128 numpy array)
+    See documentation of the function "sort_rows_loop".
+
+
+    Returns
+    __________
+
+    num_zero_rows: (unsigned 64-bit Integer)
+    num_zero_rows denotes the number of rows with 
+    all the entries classified as zeros.
+
+    min_piv_idx: (unsigned 64-bit Integer)
+    min_piv_idx denotes the smallest column pivot index 
+    that has been found. 
+    """
+
+    cdef uint64_t cols = u.shape[1], min_shape = min((u.shape[0], u.shape[1]))
+    cdef uint64_t num_zero_rows = 0, min_j = cols+adder, j = 0, min_piv_idx = 0
+
+    for i in range(min_shape):
+        j = i
+        while (cabs(u[i, j]) <= threshold):
             if j == cols - 1:
                 j += 1
                 num_zero_rows += 1
