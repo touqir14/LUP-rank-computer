@@ -13,7 +13,7 @@ def sort_rows_fast(u, threshold, remove_zero_columns_rows=True, adder=0):
     Parameters
     __________
 
-    u: (2D float64 numpy array)
+    u: (2D float64 or complex128 numpy array)
     u is the upper triangular matrix produced from
     the LUP factorization.
 
@@ -39,7 +39,7 @@ def sort_rows_fast(u, threshold, remove_zero_columns_rows=True, adder=0):
     Returns
     __________
 
-    u_sorted: (2D float64 numpy array)
+    u_sorted: (2D float64 or complex128 numpy array)
     u_sorted is u with rows shuffled such that for any i>j, 
     the pivot column index of u_sorted[i,:] will not be smaller
     than that of u_sorted[j,:].
@@ -55,7 +55,10 @@ def sort_rows_fast(u, threshold, remove_zero_columns_rows=True, adder=0):
     scores = np.empty(min_shape, dtype=np.uint64)
 
     if remove_zero_columns_rows:
-        num_zero_rows, min_j = sort_rows_loop(scores, u, threshold, 0)
+        if u.dtype == np.complex128:
+            num_zero_rows, min_j = sort_rows_loop_complex(scores, u, threshold, 0)
+        else:
+            num_zero_rows, min_j = sort_rows_loop(scores, u, threshold, 0)
         order = np.argsort(scores).astype(np.uint64)
         u_sorted = u[order]
         sorted_scores = scores[order]
@@ -65,7 +68,10 @@ def sort_rows_fast(u, threshold, remove_zero_columns_rows=True, adder=0):
         else:
             return u_sorted[:-num_zero_rows, min_j:], sorted_scores[:-num_zero_rows]-min_j, order[:-num_zero_rows]
     else:
-        num_zero_rows, min_j = sort_rows_loop(scores, u, threshold, adder)
+        if u.dtype == np.complex128:
+            num_zero_rows, min_j = sort_rows_loop_complex(scores, u, threshold, adder)
+        else:
+            num_zero_rows, min_j = sort_rows_loop(scores, u, threshold, adder)
         order = np.argsort(scores).astype(np.uint64)
 
         u_sorted = np.copy(u)
@@ -134,7 +140,7 @@ def compute_ref_LUP_fast(u, threshold):
     Returns
     __________
 
-    u[order]: (2D float64 numpy array)
+    u[order]: (2D float64 or complex128 numpy array)
     Modified u array that is in Row Echelon Form.
 
     """
@@ -149,7 +155,7 @@ def compute_ref_LUP_fast(u, threshold):
     last_row = False
 
     while not halt:
-        while (-threshold <= u[order[i], j] <= threshold) or last_row:
+        while (abs(u[order[i], j]) <= threshold) or last_row:
             in_ref = True
             if not_ref_pos[0] != -1:
                 start, end = not_ref_pos
@@ -198,7 +204,7 @@ def compute_rank_ref(ref, threshold):
     Parameters
     __________
 
-    ref: (2D float64 numpy array)
+    ref: (2D float64 or complex128 numpy array)
     The input Row Echelon form of u.
 
     threshold: (Float)
@@ -219,7 +225,7 @@ def compute_rank_ref(ref, threshold):
     halt = False
 
     for i in range(rows):
-        while (-threshold <= ref[i, j] <= threshold):
+        while (abs(ref[i, j]) <= threshold):
             if j == cols - 1:
                 halt = True
                 break
@@ -240,7 +246,7 @@ def rank_revealing_LUP(A, threshold=10**-10):
     Parameters
     __________
 
-    A: (2D float64 Numpy Array)
+    A: (2D float64 or complex128 Numpy Array)
     Input array for which rank needs to be computed
 
     threshold: (Float)
